@@ -83,16 +83,19 @@ void CreateTriangleData()
 		float r, g, b;
 	};
 
-	TriangleVertex triangleVertices[3] =
+	TriangleVertex triangleVertices[4] =
 	{
-		0.0f, 0.5f, 0.0f,	//v0 pos
-		1.0f, 0.0f, 0.0f,	//v0 color
+		-0.3f, -0.3f, 0.0f,	//v0 pos
+		0.0f, 0.0f, 1.0f,	//v0 color
 
-		0.5f, -0.5f, 0.0f,	//v1
-		0.0f, 1.0f, 0.0f,	//v1 color
+		0.3f, -0.3f, 0.0f,	//v1
+		1.0f, 0.0f, 0.0f,	//v1 color
 
-		-0.5f, -0.5f, 0.0f, //v2
-		0.0f, 0.0f, 1.0f	//v2 color
+		0.3f, 0.3f, 0.0f,	//v2
+		0.0f, 1.0f, 0.0f,	//v2 color
+
+		-0.3f, 0.3f, 0.0f,	//v3
+		1.0f, 1.0f, 0.0f	//v3 color
 	};
 
 	D3D11_BUFFER_DESC bufferDesc;
@@ -134,11 +137,11 @@ void Render()
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
-	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	gDeviceContext->IASetInputLayout(gVertexLayout);
 
 
-	gDeviceContext->Draw(3, 0);
+	gDeviceContext->Draw(4, 0);
 }
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )

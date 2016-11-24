@@ -243,3 +243,7 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+
+# Ignore db and opendb
+*.VC.db
+*.VC.opendb
