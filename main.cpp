@@ -85,16 +85,16 @@ void CreateTriangleData()
 
 	TriangleVertex triangleVertices[4] =
 	{
-		-0.3f, -0.3f, 0.0f,	//v0 pos
-		0.0f, 0.0f, 1.0f,	//v0 color
+		-0.3f, 0.4f, 0.0f,	//v0 pos
+		0.0f, 0.0f, 0.0f,	//v0 color
 
-		0.3f, -0.3f, 0.0f,	//v1
+		0.3f, 0.4f, 0.0f,	//v1
 		1.0f, 0.0f, 0.0f,	//v1 color
 
-		0.3f, 0.3f, 0.0f,	//v2
+		-0.3f, -0.4f, 0.0f,	//v2
 		0.0f, 1.0f, 0.0f,	//v2 color
 
-		-0.3f, 0.3f, 0.0f,	//v3
+		0.3f, -0.4f, 0.0f,	//v3
 		1.0f, 1.0f, 0.0f	//v3 color
 	};
 
