@@ -5,6 +5,7 @@
 
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <DirectXMath.h>
 
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
@@ -24,6 +25,34 @@ ID3D11Buffer* gVertexBuffer = nullptr;
 ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
+
+// ADDED 3 BUFFERS
+ID3D11Buffer* gWorldMatrix;
+ID3D11Buffer* gViewMatrix;
+ID3D11Buffer* gProjectionMatrix;
+ID3D11Buffer** gBufferList[3] = { &gWorldMatrix, &gViewMatrix, &gProjectionMatrix };
+DirectX::XMFLOAT4X4 gWorldValues;
+DirectX::XMFLOAT4X4 gViewValues;
+DirectX::XMFLOAT4X4 gProjectionValues;
+
+void CreateConstantBuffers()
+{
+	D3D11_BUFFER_DESC bufferDesc;
+	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4X4);
+	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bufferDesc.MiscFlags = 0;
+	bufferDesc.StructureByteStride = 0;
+
+	HRESULT hr = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		hr = gDevice->CreateBuffer(&bufferDesc, nullptr, gBufferList[i]);
+		if (FAILED(hr))
+			exit(-1);
+	}
+}
 
 void CreateShaders()
 {
@@ -137,6 +166,10 @@ void Render()
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
+	D3D11_MAPPED_SUBRESOURCE dataPtr;
+	// Doesn't work
+	gDeviceContext->Map(gBufferList[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &dataPtr);
+
 	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	gDeviceContext->IASetInputLayout(gVertexLayout);
 
@@ -158,6 +191,8 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		CreateShaders(); //4. Skapa vertex- och pixel-shaders
 
 		CreateTriangleData(); //5. Definiera triangelvertiser, 6. Skapa vertex buffer, 7. Skapa input layout
+
+		CreateConstantBuffers(); //6. Skapa Konstanta Buffers (World, View, Projection)
 
 		ShowWindow(wndHandle, nCmdShow);
 
