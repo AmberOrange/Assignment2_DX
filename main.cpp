@@ -27,31 +27,30 @@ ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 
 // ADDED 3 BUFFERS
-ID3D11Buffer* gWorldMatrix;
-ID3D11Buffer* gViewMatrix;
-ID3D11Buffer* gProjectionMatrix;
-ID3D11Buffer** gBufferList[3] = { &gWorldMatrix, &gViewMatrix, &gProjectionMatrix };
-DirectX::XMFLOAT4X4 gWorldValues;
-DirectX::XMFLOAT4X4 gViewValues;
-DirectX::XMFLOAT4X4 gProjectionValues;
+ID3D11Buffer* gTransformBuffer;
+struct transformStruct
+{
+	DirectX::XMMATRIX world;
+	DirectX::XMMATRIX view;
+	DirectX::XMMATRIX projection;
+};
+transformStruct gTransformData;
 
 void CreateConstantBuffers()
 {
 	D3D11_BUFFER_DESC bufferDesc;
 	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	bufferDesc.ByteWidth = sizeof(DirectX::XMFLOAT4X4);
+	bufferDesc.ByteWidth = sizeof(transformStruct);
 	bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	bufferDesc.MiscFlags = 0;
 	bufferDesc.StructureByteStride = 0;
 
 	HRESULT hr = 0;
-	for (int i = 0; i < 3; i++)
-	{
-		hr = gDevice->CreateBuffer(&bufferDesc, nullptr, gBufferList[i]);
-		if (FAILED(hr))
-			exit(-1);
-	}
+
+	hr = gDevice->CreateBuffer(&bufferDesc, nullptr, &gTransformBuffer);
+	if (FAILED(hr))
+		exit(-1);
 }
 
 void CreateShaders()
@@ -127,6 +126,21 @@ void CreateTriangleData()
 		1.0f, 1.0f, 0.0f	//v3 color
 	};
 
+	gTransformData.projection = DirectX::XMMatrixIdentity();
+		/*DirectX::XMMatrixPerspectiveFovLH(
+			DirectX::XM_PI*0.45f,
+			640 / 480,
+			0.1f,
+			20.f);*/
+
+	gTransformData.view = DirectX::XMMatrixIdentity();
+		/*DirectX::XMMatrixLookAtLH(
+			DirectX::XMVectorSet(0.f, 0.f, -1.f, 0.f),
+			DirectX::XMVectorSet(0.f, 0.f, 0.f, 0.f),
+			DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f));*/
+
+	gTransformData.world = DirectX::XMMatrixIdentity();
+			
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -166,9 +180,18 @@ void Render()
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
+	// "Open" a path to the GPU memory with a pointer to it
 	D3D11_MAPPED_SUBRESOURCE dataPtr;
-	// Doesn't work
-	gDeviceContext->Map(gBufferList[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &dataPtr);
+	gDeviceContext->Map(gTransformBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &dataPtr);
+	// Make changes to the CPU part of the memory
+
+	// Copy the data from CPU to GPU 
+	memcpy(dataPtr.pData, &gTransformBuffer, sizeof(transformStruct));
+	// "Close" the path to the GPU memory
+	gDeviceContext->Unmap(gTransformBuffer, 0);
+	// Set resource to Vertex Shader
+	gDeviceContext->VSSetConstantBuffers(0, 1, &gTransformBuffer);
+
 
 	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	gDeviceContext->IASetInputLayout(gVertexLayout);
