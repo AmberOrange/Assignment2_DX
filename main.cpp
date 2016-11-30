@@ -35,6 +35,7 @@ struct transformStruct
 	DirectX::XMMATRIX projection;
 };
 transformStruct gTransformData;
+float gWorldRotationRadian;
 
 void CreateConstantBuffers()
 {
@@ -126,20 +127,24 @@ void CreateTriangleData()
 		1.0f, 1.0f, 0.0f	//v3 color
 	};
 
-	gTransformData.projection = DirectX::XMMatrixIdentity();
-		/*DirectX::XMMatrixPerspectiveFovLH(
+	// ----- Initialize gTransformData -----
+
+	gTransformData.projection = 
+		DirectX::XMMatrixPerspectiveFovLH(
 			DirectX::XM_PI*0.45f,
 			640 / 480,
 			0.1f,
-			20.f);*/
+			20.f);
 
-	gTransformData.view = DirectX::XMMatrixIdentity();
-		/*DirectX::XMMatrixLookAtLH(
+	gTransformData.view =
+		DirectX::XMMatrixLookAtLH(
 			DirectX::XMVectorSet(0.f, 0.f, -1.f, 0.f),
 			DirectX::XMVectorSet(0.f, 0.f, 0.f, 0.f),
-			DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f));*/
+			DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f));
 
 	gTransformData.world = DirectX::XMMatrixIdentity();
+
+	gWorldRotationRadian = 0.f;
 			
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
@@ -185,8 +190,11 @@ void Render()
 	gDeviceContext->Map(gTransformBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &dataPtr);
 	// Make changes to the CPU part of the memory
 
+	gWorldRotationRadian += DirectX::XM_PI * 0.00005f;
+	gTransformData.world = DirectX::XMMatrixRotationY(gWorldRotationRadian);
+
 	// Copy the data from CPU to GPU 
-	memcpy(dataPtr.pData, &gTransformBuffer, sizeof(transformStruct));
+	memcpy(dataPtr.pData, &gTransformData, sizeof(transformStruct));
 	// "Close" the path to the GPU memory
 	gDeviceContext->Unmap(gTransformBuffer, 0);
 	// Set resource to Vertex Shader
