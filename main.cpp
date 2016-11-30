@@ -215,8 +215,8 @@ void Render()
 	memcpy(dataPtr.pData, &gTransformData, sizeof(transformStruct));
 	// "Close" the path to the GPU memory
 	gDeviceContext->Unmap(gTransformBuffer, 0);
-	// Set resource to Vertex Shader
-	gDeviceContext->VSSetConstantBuffers(0, 1, &gTransformBuffer);
+	// Set resource to Geometry Shader
+	gDeviceContext->GSSetConstantBuffers(0, 1, &gTransformBuffer);
 
 
 	gDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);

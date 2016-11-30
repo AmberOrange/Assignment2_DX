@@ -1,6 +1,27 @@
+// NEW
+cbuffer TRANSFORM_BUFFER : register(b0)
+{
+	float4x4 world;
+	float4x4 view;
+	float4x4 projection;
+};
+
+// OLD
+//struct GS_IN
+//{
+//	float4 Pos : SV_POSITION;
+//	float3 Color : COLOR;
+//};
+//
+//struct GS_OUT
+//{
+//	float4 Pos : SV_POSITION;
+//	float3 Color : COLOR;
+//};
+
 struct GS_IN
 {
-	float4 Pos : SV_POSITION;
+	float3 Pos : POSITION;
 	float3 Color : COLOR;
 };
 
@@ -10,26 +31,27 @@ struct GS_OUT
 	float3 Color : COLOR;
 };
 
-[maxvertexcount(3)]
+[maxvertexcount(6)]
 void GS_main(
 	triangle GS_IN input[3], 
 	inout TriangleStream< GS_OUT > output
 )
 {
-	float4 normal = float4(normalize(
+	// OLD
+	/*float4 normal = float4(normalize(
 		cross(
 			input[1].Pos.xyz - input[0].Pos.xyz,
 			input[2].Pos.xyz - input[0].Pos.xyz)
 	),0);
 
-	//for (uint i = 0; i < 3; i++)
-	//{
-	//	GS_OUT element;
-	//	element.Pos = input[i].Pos;
-	//	element.Color = input[i].Color;
-	//	output.Append(element);
-	//}
-	//output.RestartStrip();
+	for (uint i = 0; i < 3; i++)
+	{
+		GS_OUT element;
+		element.Pos = input[i].Pos;
+		element.Color = input[i].Color;
+		output.Append(element);
+	}
+	output.RestartStrip();
 
 	for (uint i = 0; i < 3; i++)
 	{
@@ -38,5 +60,32 @@ void GS_main(
 		element.Color = input[i].Color;
 		output.Append(element);
 	}
+	output.RestartStrip();*/
+
+	// NEW
+	
+	float4x4 final = mul(projection, mul(view, world));
+	float3 normal = normalize(
+		cross(
+			input[1].Pos - input[0].Pos,
+			input[2].Pos - input[0].Pos)
+	);
+
+	for (uint i = 0; i < 3; i++)
+	{
+		GS_OUT element;
+		element.Pos = mul(final, float4(input[i].Pos,1));
+		//element.Pos = float4(input[i].Pos,1);
+		element.Color = input[i].Color;
+		output.Append(element);
+	}
 	output.RestartStrip();
+
+	for (uint i = 0; i < 3; i++)
+	{
+		GS_OUT element;
+		element.Pos = mul(final, float4(input[i].Pos + normal * 0.4f, 1));
+		element.Color = input[i].Color;
+		output.Append(element);
+	}
 }
