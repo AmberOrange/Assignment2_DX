@@ -25,6 +25,7 @@ ID3D11Buffer* gVertexBuffer = nullptr;
 ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
+ID3D11GeometryShader* gGeometryShader = nullptr;
 
 // ADDED 3 BUFFERS
 ID3D11Buffer* gTransformBuffer;
@@ -82,6 +83,23 @@ void CreateShaders()
 	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
 	pVS->Release();
+
+	// Create Geometry Shader
+	ID3DBlob* pGS = nullptr;
+	D3DCompileFromFile(
+		L"Geometry.hlsl",
+		nullptr,
+		nullptr,
+		"main",
+		"gs_5_0",
+		0,
+		0,
+		&pGS,
+		nullptr
+	);
+	
+	gDevice->CreateGeometryShader(pGS->GetBufferPointer(), pGS->GetBufferSize(), nullptr, &gGeometryShader);
+	pGS->Release();
 
 	//create pixel shader
 	ID3DBlob* pPS = nullptr;
@@ -178,7 +196,7 @@ void Render()
 	gDeviceContext->VSSetShader(gVertexShader, nullptr, 0);
 	gDeviceContext->HSSetShader(nullptr, nullptr, 0);
 	gDeviceContext->DSSetShader(nullptr, nullptr, 0);
-	gDeviceContext->GSSetShader(nullptr, nullptr, 0);
+	gDeviceContext->GSSetShader(gGeometryShader, nullptr, 0);
 	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
 
 	UINT32 vertexSize = sizeof(float) * 6;
@@ -246,6 +264,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 		gVertexLayout->Release();
 		gVertexShader->Release();
+		gGeometryShader->Release();
 		gPixelShader->Release();
 
 		gBackbufferRTV->Release();
