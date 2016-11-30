@@ -90,7 +90,7 @@ void CreateShaders()
 		L"Geometry.hlsl",
 		nullptr,
 		nullptr,
-		"main",
+		"GS_main",
 		"gs_5_0",
 		0,
 		0,

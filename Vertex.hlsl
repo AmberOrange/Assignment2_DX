@@ -24,7 +24,6 @@ VS_OUT VS_main(VS_IN input)
 	float4x4 final = mul(projection, mul(view, world));
 	VS_OUT output = (VS_OUT)0;
 
-	float4x4 asd = { 1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1 };
 	output.Pos = mul(final, float4(input.Pos, 1));
 	output.Color = input.Color;
 
