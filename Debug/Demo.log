@@ -1,4 +1,2 @@
-﻿J:\GitHub\Assignment2_DX\Geometry.hlsl(84,12): warning X3078: 'i': loop control variable conflicts with a previous declaration in the outer scope; most recent declaration will be used
-  
-  compilation object save succeeded; see J:\GitHub\Assignment2_DX\Debug\Geometry.cso
+﻿  compilation object save succeeded; see J:\GitHub\Assignment2_DX\Debug\Fragment.cso
   Demo.vcxproj -> J:\GitHub\Assignment2_DX\Debug\Demo.exe

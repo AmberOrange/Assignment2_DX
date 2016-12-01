@@ -23,12 +23,14 @@ struct GS_IN
 {
 	float3 Pos : POSITION;
 	float3 Color : COLOR;
+	float2 Tex : TEXCOORD0;
 };
 
 struct GS_OUT
 {
 	float4 Pos : SV_POSITION;
 	float3 Color : COLOR;
+	float2 Tex : TEXCOORD0;
 };
 
 [maxvertexcount(6)]
@@ -64,7 +66,7 @@ void GS_main(
 
 	// NEW
 	
-	float4x4 final = mul(projection, mul(view, world));
+	float4x4 final = mul(world, mul(view, projection));
 	float3 normal = normalize(
 		cross(
 			input[1].Pos - input[0].Pos,
@@ -74,9 +76,10 @@ void GS_main(
 	for (uint i = 0; i < 3; i++)
 	{
 		GS_OUT element;
-		element.Pos = mul(final, float4(input[i].Pos,1));
+		element.Pos = mul(float4(input[i].Pos,1), final);
 		//element.Pos = float4(input[i].Pos,1);
 		element.Color = input[i].Color;
+		element.Tex = input[i].Tex;
 		output.Append(element);
 	}
 	output.RestartStrip();
@@ -84,8 +87,9 @@ void GS_main(
 	for (uint i = 0; i < 3; i++)
 	{
 		GS_OUT element;
-		element.Pos = mul(final, float4(input[i].Pos + normal * 0.4f, 1));
+		element.Pos = mul(float4(input[i].Pos + normal * 0.8f, 1), final);
 		element.Color = input[i].Color;
+		element.Tex = input[i].Tex;
 		output.Append(element);
 	}
 }

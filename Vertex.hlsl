@@ -10,6 +10,7 @@ struct VS_IN
 {
 	float3 Pos : POSITION;
 	float3 Color : COLOR;
+	float2 Tex : TEXCOORD0;
 };
 
 // OLD
@@ -24,6 +25,7 @@ struct VS_OUT
 {
 	float3 Pos : POSITION;
 	float3 Color : COLOR;
+	float2 Tex : TEXCOORD0;
 };
 
 //-----------------------------------------------------------------------------------------
@@ -43,6 +45,7 @@ VS_OUT VS_main(VS_IN input)
 
 	output.Pos = input.Pos;
 	output.Color = input.Color;
+	output.Tex = input.Tex;
 
 
 	return output;

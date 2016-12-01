@@ -7,6 +7,8 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 
+#include "bth_image.h"
+
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
@@ -26,6 +28,10 @@ ID3D11InputLayout* gVertexLayout = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 ID3D11GeometryShader* gGeometryShader = nullptr;
+
+ID3D11ShaderResourceView* gShaderResourceView = nullptr;
+ID3D11SamplerState* gSamplerState = nullptr;
+ID3D11Texture2D* gTexture2D = nullptr;
 
 // ADDED 3 BUFFERS
 ID3D11Buffer* gTransformBuffer;
@@ -79,8 +85,9 @@ void CreateShaders()
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
-	gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
+	HRESULT hr = gDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), pVS->GetBufferPointer(), pVS->GetBufferSize(), &gVertexLayout);
 	// we do not need anymore this COM object, so we release it.
 	pVS->Release();
 
@@ -128,37 +135,43 @@ void CreateTriangleData()
 	{
 		float x, y, z;
 		float r, g, b;
+		float t0, t1;
 	};
 
 	TriangleVertex triangleVertices[4] =
 	{
-		-0.3f, 0.4f, 0.0f,	//v0 pos
+		-0.6f, 0.8f, 0.0f,	//v0 pos
 		0.0f, 0.0f, 0.0f,	//v0 color
+		0.0f, 0.0f,			//v0 tex
 
-		0.3f, 0.4f, 0.0f,	//v1
+
+		0.6f, 0.8f, 0.0f,	//v1
 		1.0f, 0.0f, 0.0f,	//v1 color
+		1.0f, 0.0f,			//v1 tex
 
-		-0.3f, -0.4f, 0.0f,	//v2
+		-0.6f, -0.8f, 0.0f,	//v2
 		0.0f, 1.0f, 0.0f,	//v2 color
+		0.0f, 1.0f,			//v2 tex
 
-		0.3f, -0.4f, 0.0f,	//v3
-		1.0f, 1.0f, 0.0f	//v3 color
+		0.6f, -0.8f, 0.0f,	//v3
+		1.0f, 1.0f, 0.0f,	//v3 color
+		1.0f, 1.0f			//v3 tex
 	};
 
 	// ----- Initialize gTransformData -----
 
-	gTransformData.projection = 
+	gTransformData.projection = DirectX::XMMatrixTranspose(
 		DirectX::XMMatrixPerspectiveFovLH(
 			DirectX::XM_PI*0.45f,
 			640 / 480,
 			0.1f,
-			20.f);
+			20.f));
 
-	gTransformData.view =
+	gTransformData.view = DirectX::XMMatrixTranspose(
 		DirectX::XMMatrixLookAtLH(
-			DirectX::XMVectorSet(0.f, 0.f, -1.f, 0.f),
+			DirectX::XMVectorSet(0.f, 0.f, -2.f, 0.f),
 			DirectX::XMVectorSet(0.f, 0.f, 0.f, 0.f),
-			DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f));
+			DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f)));
 
 	gTransformData.world = DirectX::XMMatrixIdentity();
 
@@ -173,6 +186,44 @@ void CreateTriangleData()
 	D3D11_SUBRESOURCE_DATA data;
 	data.pSysMem = triangleVertices;
 	gDevice->CreateBuffer(&bufferDesc, &data, &gVertexBuffer);
+}
+
+void CreateTexture()
+{
+	D3D11_TEXTURE2D_DESC desc = {};
+	desc.Width = BTH_IMAGE_WIDTH;
+	desc.Height = BTH_IMAGE_HEIGHT;
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Usage = D3D11_USAGE_DEFAULT;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	desc.CPUAccessFlags = 0;
+	desc.MiscFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA data = {};
+	data.pSysMem = BTH_IMAGE_DATA;
+	data.SysMemPitch = sizeof(UINT8) * BTH_IMAGE_WIDTH * 4;
+	data.SysMemSlicePitch = sizeof(UINT8) * BTH_IMAGE_WIDTH * BTH_IMAGE_HEIGHT * 4;
+	HRESULT hr = gDevice->CreateTexture2D(&desc, &data, &gTexture2D);
+
+	hr =  gDevice->CreateShaderResourceView(gTexture2D, nullptr, &gShaderResourceView);
+	gDeviceContext->PSSetShaderResources(0, 1, &gShaderResourceView);
+
+	D3D11_SAMPLER_DESC sDesc = {};
+	sDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+	sDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sDesc.MaxAnisotropy = 1;
+	sDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	sDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	hr = gDevice->CreateSamplerState(&sDesc, &gSamplerState);
+	gDeviceContext->PSSetSamplers(0, 1, &gSamplerState);
+
 }
 
 void SetViewport()
@@ -199,7 +250,7 @@ void Render()
 	gDeviceContext->GSSetShader(gGeometryShader, nullptr, 0);
 	gDeviceContext->PSSetShader(gPixelShader, nullptr, 0);
 
-	UINT32 vertexSize = sizeof(float) * 6;
+	UINT32 vertexSize = sizeof(float) * 8;
 	UINT32 offset = 0;
 	gDeviceContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vertexSize, &offset);
 
@@ -208,8 +259,8 @@ void Render()
 	gDeviceContext->Map(gTransformBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &dataPtr);
 	// Make changes to the CPU part of the memory
 
-	gWorldRotationRadian += DirectX::XM_PI * 0.00005f;
-	gTransformData.world = DirectX::XMMatrixRotationY(gWorldRotationRadian);
+	gWorldRotationRadian += DirectX::XM_PI * 0.005f;
+	gTransformData.world = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationY(gWorldRotationRadian));
 
 	// Copy the data from CPU to GPU 
 	memcpy(dataPtr.pData, &gTransformData, sizeof(transformStruct));
@@ -239,6 +290,8 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 		CreateShaders(); //4. Skapa vertex- och pixel-shaders
 
+		CreateTexture();
+
 		CreateTriangleData(); //5. Definiera triangelvertiser, 6. Skapa vertex buffer, 7. Skapa input layout
 
 		CreateConstantBuffers(); //6. Skapa Konstanta Buffers (World, View, Projection)
@@ -256,7 +309,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 			{
 				Render(); //8. Rendera
 
-				gSwapChain->Present(0, 0); //9. Växla front- och back-buffer
+				gSwapChain->Present(1, 0); //9. Växla front- och back-buffer
 			}
 		}
 
