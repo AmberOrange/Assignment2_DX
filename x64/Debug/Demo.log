@@ -1,1 +1,7 @@
-﻿
+﻿C:\Users\Emil Grenebrant\Documents\GitHub\Assignment2_DX\Geometry.hlsl(90,12): warning X3078: 'i': loop control variable conflicts with a previous declaration in the outer scope; most recent declaration will be used
+  
+  compilation object save succeeded; see C:\Users\Emil Grenebrant\Documents\GitHub\Assignment2_DX\x64\Debug\Geometry.cso
+  compilation object save succeeded; see C:\Users\Emil Grenebrant\Documents\GitHub\Assignment2_DX\x64\Debug\Vertex.cso
+  main.cpp
+  Demo.vcxproj -> C:\Users\Emil Grenebrant\Documents\GitHub\Assignment2_DX\x64\Debug\Demo.exe
+  Demo.vcxproj -> C:\Users\Emil Grenebrant\Documents\GitHub\Assignment2_DX\x64\Debug\Demo.pdb (Full PDB)

@@ -33,6 +33,8 @@ struct GS_OUT
 	float2 Tex : TEXCOORD0;
 };
 
+float3 LightDirection = float3(0.f, 0.f, -1.f);
+
 [maxvertexcount(6)]
 void GS_main(
 	triangle GS_IN input[3], 
@@ -72,13 +74,14 @@ void GS_main(
 			input[1].Pos - input[0].Pos,
 			input[2].Pos - input[0].Pos)
 	);
+	float lightIntensity = dot(normalize(mul(normal,(float3x3)world)), LightDirection);
 
 	for (uint i = 0; i < 3; i++)
 	{
 		GS_OUT element;
 		element.Pos = mul(float4(input[i].Pos,1), final);
 		//element.Pos = float4(input[i].Pos,1);
-		element.Color = input[i].Color;
+		element.Color = input[i].Color * lightIntensity;
 		element.Tex = input[i].Tex;
 		output.Append(element);
 	}
@@ -88,7 +91,7 @@ void GS_main(
 	{
 		GS_OUT element;
 		element.Pos = mul(float4(input[i].Pos + normal * 0.8f, 1), final);
-		element.Color = input[i].Color;
+		element.Color = input[i].Color * lightIntensity;
 		element.Tex = input[i].Tex;
 		output.Append(element);
 	}
