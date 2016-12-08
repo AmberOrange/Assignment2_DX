@@ -12,12 +12,6 @@
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
-#define DBOUT( s )            \
-{                             \
-   std::ostringstream os_;    \
-   os_ << s;                   \
-   OutputDebugString( os_.str().c_str() );  \
-}
 
 HWND InitWindow(HINSTANCE hInstance);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -70,6 +64,23 @@ void CreateConstantBuffers()
 	hr = gDevice->CreateBuffer(&bufferDesc, nullptr, &gTransformBuffer);
 	if (FAILED(hr))
 		exit(-1);
+
+	gTransformData.projection = DirectX::XMMatrixTranspose(
+		DirectX::XMMatrixPerspectiveFovLH(
+			DirectX::XM_PI*0.45f,
+			640.f / 480.f,
+			0.1f,
+			20.f));
+
+	gTransformData.view = DirectX::XMMatrixTranspose(
+		DirectX::XMMatrixLookAtLH(
+			DirectX::XMVectorSet(0.f, 0.f, -2.f, 0.f),
+			DirectX::XMVectorSet(0.f, 0.f, 0.f, 0.f),
+			DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f)));
+
+	gTransformData.world = DirectX::XMMatrixIdentity();
+
+	gWorldRotationRadian = 0.f;
 }
 
 void CreateShaders()
@@ -151,42 +162,25 @@ void CreateTriangleData()
 
 	TriangleVertex triangleVertices[4] =
 	{
-		-0.6f, 0.8f, 0.0f,	//v0 pos
+		-0.8f, 0.8f, 0.0f,	//v0 pos
 		0.0f, 0.0f, 0.0f,	//v0 color
 		0.0f, 0.0f,			//v0 tex
 
 
-		0.6f, 0.8f, 0.0f,	//v1
+		0.8f, 0.8f, 0.0f,	//v1
 		1.0f, 0.0f, 0.0f,	//v1 color
 		1.0f, 0.0f,			//v1 tex
 
-		-0.6f, -0.8f, 0.0f,	//v2
+		-0.8f, -0.8f, 0.0f,	//v2
 		0.0f, 1.0f, 0.0f,	//v2 color
 		0.0f, 1.0f,			//v2 tex
 
-		0.6f, -0.8f, 0.0f,	//v3
+		0.8f, -0.8f, 0.0f,	//v3
 		1.0f, 1.0f, 0.0f,	//v3 color
 		1.0f, 1.0f			//v3 tex
 	};
 
 	// ----- Initialize gTransformData -----
-
-	gTransformData.projection = DirectX::XMMatrixTranspose(
-		DirectX::XMMatrixPerspectiveFovLH(
-			DirectX::XM_PI*0.45f,
-			640 / 480,
-			0.1f,
-			20.f));
-
-	gTransformData.view = DirectX::XMMatrixTranspose(
-		DirectX::XMMatrixLookAtLH(
-			DirectX::XMVectorSet(0.f, 0.f, -2.f, 0.f),
-			DirectX::XMVectorSet(0.f, 0.f, 0.f, 0.f),
-			DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f)));
-
-	gTransformData.world = DirectX::XMMatrixIdentity();
-
-	gWorldRotationRadian = 0.f;
 			
 	D3D11_BUFFER_DESC bufferDesc;
 	memset(&bufferDesc, 0, sizeof(bufferDesc));
@@ -234,10 +228,6 @@ void CreateTexture()
 
 	hr = gDevice->CreateSamplerState(&sDesc, &gSamplerState);
 	gDeviceContext->PSSetSamplers(0, 1, &gSamplerState);
-
-	// DEPTH BUFFER
-	D3D11_TEXTURE2D_DESC depthDesc;
-	ZeroMemory(&depthDesc, sizeof(D3D11_TEXTURE2D_DESC));
 }
 
 void SetViewport()
@@ -257,7 +247,7 @@ void Render()
 	// clear the back buffer to a deep blue
 	float clearColor[] = { 0, 0, 0, 1 };
 	gDeviceContext->ClearRenderTargetView(gBackbufferRTV, clearColor);
-	gDeviceContext->ClearDepthStencilView(gDepthStencilView, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0);
+	gDeviceContext->ClearDepthStencilView(gDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	gDeviceContext->VSSetShader(gVertexShader, nullptr, 0);
 	gDeviceContext->HSSetShader(nullptr, nullptr, 0);
@@ -430,14 +420,14 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 		gDevice->CreateRenderTargetView(pBackBuffer, NULL, &gBackbufferRTV);
 		pBackBuffer->Release();
 
-		// DEPTH BUFFER
+		// DEPTH BUFFER =====
 		D3D11_TEXTURE2D_DESC depthStencilDesc;
 
 		depthStencilDesc.Width = 640;
 		depthStencilDesc.Height = 480;
 		depthStencilDesc.MipLevels = 1;
 		depthStencilDesc.ArraySize = 1;
-		depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthStencilDesc.Format = DXGI_FORMAT_D32_FLOAT;
 		depthStencilDesc.SampleDesc.Count = 4;
 		depthStencilDesc.SampleDesc.Quality = 0;
 		depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -446,14 +436,10 @@ HRESULT CreateDirect3DContext(HWND wndHandle)
 		depthStencilDesc.MiscFlags = 0;
 
 		HRESULT hr2 = gDevice->CreateTexture2D(&depthStencilDesc, NULL, &gDepthTexture2D);
-
-		/*D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
-		descDSV.Format = depthStencilDesc.Format;
-		descDSV.Texture2D.MipSlice = 0;
-		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;*/
 		
 		hr2 = gDevice->CreateDepthStencilView(gDepthTexture2D, NULL, &gDepthStencilView);
 
+		// ========
 
 		// set the render target as the back buffer
 		gDeviceContext->OMSetRenderTargets(1, &gBackbufferRTV, gDepthStencilView);
